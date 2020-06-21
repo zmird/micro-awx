@@ -1,0 +1,83 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Install packages that allow apt to be used over HTTPS
+      apt:
+        name: "{{ packages }}"
+        state: present
+        update_cache: yes
+      vars:
+        packages:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          - software-properties-common
+
+    - name: Install necessary packages for python and docker
+      apt:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+          - python-pip
+          - python3-pip
+          - python-docker
+          - docker-compose
+
+    - name: Install Ansible via pip
+      pip:
+        name: ansible
+        state: latest
+        executable: pip3
+
+    name: Install docker-compose module
+      pip:
+        name: docker-compose==1.24.1
+        state: present
+
+    - name: Add apt signing key for Docker
+      apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+
+    - name: Add Docker apt repository of stable version
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/debian buster stable
+        state: present
+
+    - name: Install Docker and its dependencies
+      apt:
+        name: "{{ packages }}"
+        state: present
+        update_cache: yes
+      vars:
+        packages:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+
+    - name: Start dockerd service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Clone awx repository
+      git:
+        repo: https://github.com/ansible/awx.git
+        dest: /opt/awx
+        clone: yes
+        version: "{{ awx_version | default(omit) }}"
+
+    # - name: Start installer awx
+    #   become: yes
+    #   command:
+    #     chdir: /opt/awx/installer
+    #     cmd: ansible-playbook -i inventory install.yml
+
+    - name: Start installer awx
+      include: /opt/awx/installer/install.yml
+      static: no
+      delegate_to: "{{ inventory_hostname }}"

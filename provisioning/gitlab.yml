@@ -1,0 +1,32 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install dependencies
+      apt:
+        name: "{{ packages }}"
+      vars:
+        packages:
+          - curl
+          - openssh-server
+          - ca-certificates
+
+    - name: Download gitlab script
+      get_url:
+        url: https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh
+        dest: /tmp/gitlab-addrepo.sh
+
+    - name: Change script permissions
+      file:
+        dest: /tmp/gitlab-addrepo.sh
+        mode: a+x
+
+    - name: Add gitlab repository
+      shell: /tmp/gitlab-addrepo.sh
+
+    - name: Install gitlab
+      apt:
+        name: gitlab-ce
+        update_cache: yes
+      environment:
+        EXTERNAL_URL: "http://{{ gitlab_hostname }}"
