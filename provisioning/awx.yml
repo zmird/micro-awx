@@ -1,6 +1,6 @@
 ---
 - hosts: all
-  become: true
+  become: yes
   tasks:
     - name: Install packages that allow apt to be used over HTTPS
       apt:
@@ -14,28 +14,6 @@
           - curl
           - gnupg2
           - software-properties-common
-
-    - name: Install necessary packages for python and docker
-      apt:
-        name: "{{ packages }}"
-        state: present
-      vars:
-        packages:
-          - python-pip
-          - python3-pip
-          - python-docker
-          - docker-compose
-
-    - name: Install Ansible via pip
-      pip:
-        name: ansible
-        state: latest
-        executable: pip3
-
-    name: Install docker-compose module
-      pip:
-        name: docker-compose==1.24.1
-        state: present
 
     - name: Add apt signing key for Docker
       apt_key:
@@ -58,26 +36,69 @@
           - docker-ce-cli
           - containerd.io
 
+    - name: Retrieve Docker-Compose release via Github API
+      uri:
+        url: https://api.github.com/repos/docker/compose/releases/latest
+        return_content: true
+      register: github_reponse
+
+    - name: Download Docker-Compose binary
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/{{ github_reponse.json.name }}/docker-compose-Linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: a+rwx
+
+    - name: Install pip
+      apt:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+          - python-pip
+          - python3-pip
+
+    - name: Install python3 Ansible and docker modules
+      become: yes
+      pip:
+        name: "{{ packages }}"
+        state: latest
+        executable: pip3
+      vars:
+        packages:
+          - ansible
+          - docker
+          - docker-compose
+
     - name: Start dockerd service
       service:
         name: docker
         state: started
         enabled: yes
 
+    - name: Retrieve latest awx version
+      uri:
+        url: https://api.github.com/repos/ansible/awx/tags
+        return_content: true
+      register: github_response
+      when: awx_version is not defined
+
+    - set_fact:
+        awx_version: "{{ github_response.json.0.name }}"
+      when: awx_version is not defined
+
     - name: Clone awx repository
       git:
         repo: https://github.com/ansible/awx.git
         dest: /opt/awx
         clone: yes
-        version: "{{ awx_version | default(omit) }}"
+        version: "{{ awx_version }}"
 
-    # - name: Start installer awx
-    #   become: yes
-    #   command:
-    #     chdir: /opt/awx/installer
-    #     cmd: ansible-playbook -i inventory install.yml
+    - name: "Start the awx installer for version {{ awx_version }}"
+      command:
+        chdir: /opt/awx/installer
+        cmd: ansible-playbook -i inventory install.yml -e ansible_python_interpreter=/usr/bin/python3
 
-    - name: Start installer awx
-      include: /opt/awx/installer/install.yml
-      static: no
-      delegate_to: "{{ inventory_hostname }}"
+    - name: Fix issue-1618, restart docker-compose containers
+      command:
+        chdir: /root/.awx/awxcompose
+        cmd: docker-compose restart
