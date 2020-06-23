@@ -11,22 +11,24 @@
           - openssh-server
           - ca-certificates
 
-    - name: Download gitlab script
+    - name: Download Gitlab script
       get_url:
         url: https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh
-        dest: /tmp/gitlab-addrepo.sh
-
-    - name: Change script permissions
-      file:
-        dest: /tmp/gitlab-addrepo.sh
+        dest: /tmp/gitlab-script.sh
         mode: a+x
 
-    - name: Add gitlab repository
-      shell: /tmp/gitlab-addrepo.sh
+    - name: Run Gitlab script
+      shell:
+        cmd: ./gitlab-script.sh
+        chdir: /tmp
 
-    - name: Install gitlab
+    - name: Install Gitlab
       apt:
         name: gitlab-ce
         update_cache: yes
       environment:
-        EXTERNAL_URL: "http://{{ gitlab_hostname }}"
+        EXTERNAL_URL: "http://{{ gitlab_host }}"
+
+    - name: Start Gitlab
+      command:
+        cmd: gitlab-ctl reconfigure
