@@ -87,7 +87,7 @@
         version: "{{ github_response.json.0.name }}"
       when: awx_version is not defined or awx_version|length == 0
 
-    - name: Set version to specified version
+    - name: Set version to specified
       set_fact:
         version: "{{ awx_version }}"
       when: awx_version is defined and awx_version|length > 0
