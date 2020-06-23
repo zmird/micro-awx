@@ -1,6 +1,8 @@
 ---
 - hosts: all
   become: yes
+  vars:
+    download_url: https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh
   tasks:
     - name: Install dependencies
       apt:
@@ -13,7 +15,7 @@
 
     - name: Download Gitlab script
       get_url:
-        url: https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh
+        url: "{{ download_url }}"
         dest: /tmp/gitlab-script.sh
         mode: a+x
 
