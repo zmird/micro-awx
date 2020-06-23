@@ -1,12 +1,11 @@
 # Works only on debian for the moment
-IMAGE_NAME = "debian/buster64"
-PROVIDER = "virtualbox"
-NETWORK = "192.168.50"
-AWX_ADDRESS = "#{NETWORK}.10"
-AWX_VERSION = ""
-GITLAB_ADDRESS = "#{NETWORK}.11"
-GITLAB_RUNNERS = 1
-TARGET_MACHINES = 2
+IMAGE_NAME        = "debian/buster64"
+PROVIDER          = "virtualbox"
+AWX_ADDRESS       = "192.168.50.10"
+AWX_VERSION       = ""                # Leave empty for the latest version
+GITLAB_ADDRESS    = "192.168.50.11"
+GITLAB_RUNNERS    = 1
+TARGET_MACHINES   = 2
 
 
 Vagrant.configure("2") do |config|
@@ -42,17 +41,20 @@ Vagrant.configure("2") do |config|
 
   (1..GITLAB_RUNNERS).each do |i|
     config.vm.define "runner-#{i}" do |runner|
-      runner.vm.network "private_network", ip: "#{NETWORK}.#{i + 50}"
+      runner.vm.network "private_network", ip: "192.168.50.#{100 + i}"
       runner.vm.provider PROVIDER do |p|
         p.memory = 512
         p.cpus = 1
+      end
+      runner.vm.provision "ansible" do |ansible|
+        ansible.playbook = "provisioning/gitlab-runner.yml"
       end
     end
   end
 
   (1..TARGET_MACHINES).each do |i|
     config.vm.define "target-#{i}" do |target|
-      target.vm.network "private_network", ip: "#{NETWORK}.#{i + 100}"
+      target.vm.network "private_network", ip: "192.168.50.#{200 + i}"
       target.vm.provider PROVIDER do |p|
         p.memory = 512
         p.cpus = 1
