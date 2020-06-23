@@ -1,11 +1,15 @@
 ---
 - hosts: all
+  become: yes
+  vars:
+    download_url: https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb
   tasks:
     - name: Download deb package
       get_url:
-        url: https://gitlab-runner-downloads.s3.amazonawx.com/latest/deb/gitlab-runner_amd64.deb
+        url: "{{ download_url }}"
         dest: /tmp/gitlab-runner.deb
 
     - name: Install gitlab runner
       apt:
         deb: /tmp/gitlab-runner.deb
+        update_cache: yes
