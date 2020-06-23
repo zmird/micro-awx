@@ -1,9 +1,10 @@
 # Works only on debian for the moment
 IMAGE_NAME = "debian/buster64"
 PROVIDER = "virtualbox"
-BASE_ADDRESS = "192.168.50"
-AWX_ADDRESS = "#{BASE_ADDRESS}.10"
-GITLAB_ADDRESS = "#{BASE_ADDRESS}.11"
+NETWORK = "192.168.50"
+AWX_ADDRESS = "#{NETWORK}.10"
+AWX_VERSION = ""
+GITLAB_ADDRESS = "#{NETWORK}.11"
 GITLAB_RUNNERS = 1
 TARGET_MACHINES = 2
 
@@ -19,6 +20,9 @@ Vagrant.configure("2") do |config|
     end
     awx.vm.provision "ansible" do |ansible|
       ansible.playbook = "provisioning/awx.yml"
+      ansible.extra_vars = {
+        awx_version: AWX_VERSION
+      }
     end
   end
 
@@ -31,14 +35,14 @@ Vagrant.configure("2") do |config|
     gitlab.vm.provision "ansible" do |ansible|
       ansible.playbook = "provisioning/gitlab.yml"
       ansible.extra_vars = {
-        gitlab_hostname: GITLAB_ADDRESS
+        gitlab_host: GITLAB_ADDRESS
       }
     end
   end
 
   (1..GITLAB_RUNNERS).each do |i|
     config.vm.define "runner-#{i}" do |runner|
-      runner.vm.network "private_network", ip: "#{BASE_ADDRESS}.#{i + 50}"
+      runner.vm.network "private_network", ip: "#{NETWORK}.#{i + 50}"
       runner.vm.provider PROVIDER do |p|
         p.memory = 512
         p.cpus = 1
@@ -48,7 +52,7 @@ Vagrant.configure("2") do |config|
 
   (1..TARGET_MACHINES).each do |i|
     config.vm.define "target-#{i}" do |target|
-      target.vm.network "private_network", ip: "#{BASE_ADDRESS}.#{i + 100}"
+      target.vm.network "private_network", ip: "#{NETWORK}.#{i + 100}"
       target.vm.provider PROVIDER do |p|
         p.memory = 512
         p.cpus = 1
