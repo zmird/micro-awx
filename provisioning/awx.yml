@@ -80,20 +80,26 @@
         url: https://api.github.com/repos/ansible/awx/tags
         return_content: true
       register: github_response
-      when: awx_version is not defined
+      when: awx_version is not defined or awx_version|length == 0
 
-    - set_fact:
-        awx_version: "{{ github_response.json.0.name }}"
-      when: awx_version is not defined
+    - name: Set version to latest
+      set_fact:
+        version: "{{ github_response.json.0.name }}"
+      when: awx_version is not defined or awx_version|length == 0
+
+    - name: Set version to specified version
+      set_fact:
+        version: "{{ awx_version }}"
+      when: awx_version is defined and awx_version|length > 0
 
     - name: Clone awx repository
       git:
         repo: https://github.com/ansible/awx.git
         dest: /opt/awx
         clone: yes
-        version: "{{ awx_version }}"
+        version: "{{ version }}"
 
-    - name: "Start the awx installer for version {{ awx_version }}"
+    - name: "Start the awx installer for version {{ version }}"
       command:
         chdir: /opt/awx/installer
         cmd: ansible-playbook -i inventory install.yml -e ansible_python_interpreter=/usr/bin/python3
