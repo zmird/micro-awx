@@ -12,6 +12,7 @@ VM_LINUX                       = 1
 VM_LINUX_HOSTNAME_PREFIX       = "vmlinux"
 VM_LINUX_IMAGE                 = UBUNTU_IMAGE
 VM_WINDOWS                     = 0
+VM_WINDOWS_HOSTNAME_PREFIX     = "vmwindows"
 VM_WINDOWS_IMAGE               = "windows10"
 
 
@@ -98,16 +99,21 @@ Vagrant.configure("2") do |config|
 
   (1..VM_WINDOWS).each do |i|
     config.vm.define "vm-windows-#{i}" do |target|
-      target.vm.hostname = "vm-windows-#{i}"
+      target.vm.hostname = "#{VM_WINDOWS_HOSTNAME_PREFIX}-#{i}"
       target.vm.box = VM_WINDOWS_IMAGE
+      target.vm.guest = :windows
+      target.vm.communicator = "winrm"
+      target.winrm.username = "IEUser"
+      target.winrm.password = "Passw0rd!"
       target.vm.network "private_network", ip: "192.168.50.#{200 + i}"
+      target.vm.network "forwarded_port", guest: 3389, host: 3389
+      target.vm.provision "shell", path: "scripts/Upgrade-Powershell.ps1"
+      target.vm.provision "shell", path: "scripts/ConfigureRemotingForAnsible.ps1"
+      target.vm.provision "shell", path: "scripts/Install-WMF3Hotfix.ps1"
       target.vm.provider PROVIDER do |p|
         p.memory = 2048
         p.cpus = 1
       end
-      target.vm.provision "shell", path: "scripts/Upgrade-Powershell.ps1"
-      target.vm.provision "shell", path: "scripts/ConfigureRemotingForAnsible.ps1"
-      target.vm.provision "shell", path: "scripts/Install-WMF3Hotfix.ps1"
     end
   end
 end
