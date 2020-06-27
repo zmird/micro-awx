@@ -113,7 +113,7 @@ Vagrant.configure("2") do |config|
       target.vm.provision "shell", name: "Upgrade Powershell", privileged: true, path: "scripts/Upgrade-Powershell.ps1"
       target.vm.provision "shell", name: "Configure remoting for ansible", privileged: true, path: "scripts/ConfigureRemotingForAnsible.ps1"
       target.vm.provision "shell", name: "Install WMF3 hostfix", privileged: true, path: "scripts/Install-WMF3Hotfix.ps1"
-      target.vm.provision "shell", name: "Enable ICMP v4", priviliged: true, path: "script/Enable-ICMP-v4.ps1"
+      target.vm.provision "shell", name: "Enable ICMP v4", privileged: true, path: "scripts/Enable-ICMP-v4.ps1"
       target.vm.provider PROVIDER do |p|
         p.memory = 2048
         p.cpus = 1
