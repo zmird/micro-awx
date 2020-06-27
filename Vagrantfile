@@ -1,18 +1,31 @@
-# Works only on debian for the moment
-IMAGE_NAME        = "debian/buster64"
-PROVIDER          = "virtualbox"
-AWX_ADDRESS       = "192.168.50.10"
-AWX_VERSION       = ""                # Leave empty for the latest version
-GITLAB_ADDRESS    = "192.168.50.11"
-GITLAB_RUNNERS    = 1
-TARGET_MACHINES   = 2
+UBUNTU_IMAGE                   = "ubuntu/trusty64"
+DEBIAN_IMAGE                   = "debian/buster64"
+PROVIDER                       = "virtualbox"
+AWX_HOSTNAME                   = "awx"
+AWX_ADDRESS                    = "192.168.50.10"
+AWX_VERSION                    = ""                # Leave empty for the latest version
+GITLAB_HOSTNAME                = "gitlab"
+GITLAB_ADDRESS                 = "192.168.50.11"
+GITLAB_RUNNERS_HOSTNAME_PREFIX = "runner"
+GITLAB_RUNNERS                 = 1
+VM_LINUX                       = 1
+VM_LINUX_HOSTNAME_PREFIX       = "vmlinux"
+VM_LINUX_IMAGE                 = UBUNTU_IMAGE
+VM_WINDOWS                     = 0
+VM_WINDOWS_IMAGE               = "windows10"
 
 
 Vagrant.configure("2") do |config|
-  config.vm.box = IMAGE_NAME
 
   config.vm.define "awx" do |awx|
+    awx.vm.hostname = AWX_HOSTNAME
+    awx.vm.box = DEBIAN_IMAGE
     awx.vm.network "private_network", ip: AWX_ADDRESS
+    awx.vm.provision :hosts do |provisioner|
+      provisioner.autoconfigure = true
+      provisioner.sync_hosts = true
+      provisioner.add_host AWX_ADDRESS, [AWX_HOSTNAME]
+    end
     awx.vm.provider PROVIDER do |p|
       p.memory = 2048
       p.cpus = 2
@@ -26,7 +39,14 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "gitlab" do |gitlab|
+    gitlab.vm.hostname = GITLAB_HOSTNAME
+    gitlab.vm.box = DEBIAN_IMAGE
     gitlab.vm.network "private_network", ip: GITLAB_ADDRESS
+    gitlab.vm.provision :hosts do |provisioner|
+      provisioner.autoconfigure = true
+      provisioner.sync_hosts = true
+      provisioner.add_host GITLAB_ADDRESS, [GITLAB_HOSTNAME]
+    end
     gitlab.vm.provider PROVIDER do |p|
       p.memory = 2560
       p.cpus = 2
@@ -41,7 +61,14 @@ Vagrant.configure("2") do |config|
 
   (1..GITLAB_RUNNERS).each do |i|
     config.vm.define "runner-#{i}" do |runner|
+      runner.vm.hostname = "#{GITLAB_RUNNERS_HOSTNAME_PREFIX}-#{i}"
+      runner.vm.box = DEBIAN_IMAGE
       runner.vm.network "private_network", ip: "192.168.50.#{100 + i}"
+      runner.vm.provision :hosts do |provisioner|
+        provisioner.autoconfigure = true
+        provisioner.sync_hosts = true
+        provisioner.add_host "192.168.50.#{100 + i}", ["#{GITLAB_RUNNERS_HOSTNAME_PREFIX}-#{i}"]
+      end
       runner.vm.provider PROVIDER do |p|
         p.memory = 512
         p.cpus = 1
@@ -52,13 +79,35 @@ Vagrant.configure("2") do |config|
     end
   end
 
-  (1..TARGET_MACHINES).each do |i|
-    config.vm.define "target-#{i}" do |target|
-      target.vm.network "private_network", ip: "192.168.50.#{200 + i}"
+  (1..VM_LINUX).each do |i|
+    config.vm.define "vm-linux-#{i}" do |target|
+      target.vm.hostname = "#{VM_LINUX_HOSTNAME_PREFIX}-#{i}"
+      target.vm.box = VM_LINUX_IMAGE
+      target.vm.network "private_network", ip: "192.168.50.#{150 + i}"
+      target.vm.provision :hosts do |provisioner|
+        provisioner.autoconfigure = true
+        provisioner.sync_hosts = true
+        provisioner.add_host "192.168.50.#{150 + i}", ["#{VM_LINUX_HOSTNAME_PREFIX}-#{i}"]
+      end
       target.vm.provider PROVIDER do |p|
         p.memory = 512
         p.cpus = 1
       end
+    end
+  end
+
+  (1..VM_WINDOWS).each do |i|
+    config.vm.define "vm-windows-#{i}" do |target|
+      target.vm.hostname = "vm-windows-#{i}"
+      target.vm.box = VM_WINDOWS_IMAGE
+      target.vm.network "private_network", ip: "192.168.50.#{200 + i}"
+      target.vm.provider PROVIDER do |p|
+        p.memory = 2048
+        p.cpus = 1
+      end
+      target.vm.provision "shell", path: "scripts/Upgrade-Powershell.ps1"
+      target.vm.provision "shell", path: "scripts/ConfigureRemotingForAnsible.ps1"
+      target.vm.provision "shell", path: "scripts/Install-WMF3Hotfix.ps1"
     end
   end
 end
