@@ -5,8 +5,13 @@ Vagrant environment for [Awx](https://github.com/ansible/awx) and [Gitlab](https
 
 ## Getting Started
 
-Download and install vagrant from the [official page](https://vagrantup.com/downloads.html).
-You can easly create all the machines by running
+Download and install vagrant from the [official page](https://vagrantup.com/downloads.html). Install the `vagrant-hosts` plugin:
+
+``` sh
+~ $ vagrant plugin install vagrant-hosts
+```
+
+Create all the machines by running
 
 ```sh
 ~ $ vagrant up
@@ -32,7 +37,7 @@ After the migration is over the login page will appear, default username and pas
 ## Gitlab
 > Note: The Gitlab installation can take some time
 
-To start gitlab and runner run
+To start gitlab and the runner run
 
 
 ```sh
