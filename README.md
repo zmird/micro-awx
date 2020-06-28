@@ -49,7 +49,7 @@ After Gitlab started you can find at http://192.168.50.11, set the new password,
 
 ## Windows VMs
 
-> Note: the import and the creation of the virtual machine can be really slow
+> Note: the import and the creation of the virtual machine may take some time
 
 To use windows you need additional steps: download the official vagrant box from
 the [microsoft
